@@ -1,0 +1,17 @@
+{
+  "name": "장학매칭 - 수원·화성·오산 대학생 맞춤 장학금",
+  "short_name": "장학매칭",
+  "description": "내 학교 장학 공지와 국가장학금을 모아 지원 가능 여부를 알려드려요",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

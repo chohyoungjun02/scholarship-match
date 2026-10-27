@@ -71,7 +71,7 @@ export function InstallCard() {
     <div className="banner" style={{ marginTop: 24 }}>
       <img src="/icons/icon-192.png" alt="" width="40" height="40" style={{ borderRadius: 10 }} />
       <span className="body">
-        <b>장학매칭 앱 설치</b><br />
+        <b>혜택모아 앱 설치</b><br />
         {ios ? '사파리 공유 버튼 → "홈 화면에 추가"를 눌러주세요' : '홈 화면에서 앱처럼 바로 열 수 있어요'}
       </span>
       {canPrompt && <button type="button" className="btn small" onClick={install}>설치</button>}
@@ -85,7 +85,7 @@ export function TopHeader({ user, onLogout }) {
   return (
     <header className="topheader">
       <div className="topheader-inner">
-        <NavLink to="/" className="brand"><span className="brand-mark">🎓</span>장학매칭</NavLink>
+        <NavLink to="/" className="brand"><span className="brand-mark">🎓</span>혜택모아</NavLink>
         {user && (
           <nav>
             <NavLink to="/" end>맞춤 장학금</NavLink>

@@ -7,6 +7,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 db = SQLAlchemy()
 
 # 회원이 체크할 수 있는 자격 조건 (key -> 화면 표시명)
+# 거주지 선택지: 경기도 31개 시·군 (잡아바 어플라이 사업은 대부분 시·군 거주자 대상)
+REGIONS = ["수원시", "성남시", "의정부시", "안양시", "부천시", "광명시", "평택시", "동두천시", "안산시", "고양시",
+           "과천시", "구리시", "남양주시", "오산시", "시흥시", "군포시", "의왕시", "하남시", "용인시", "파주시",
+           "이천시", "안성시", "김포시", "화성시", "광주시", "양주시", "포천시", "여주시", "연천군", "가평군", "양평군"]
+
 FLAGS = {
     "basic_livelihood": "기초생활수급자",
     "near_poverty": "차상위계층",
@@ -39,6 +44,7 @@ class Profile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), unique=True, nullable=False)
     university_id = db.Column(db.String(30))     # crawler/universities.py 의 id
+    region = db.Column(db.String(10))            # 거주 시·군 (REGIONS)
     department = db.Column(db.String(100))       # 학과
     grade = db.Column(db.Integer)                # 학년 1~4
     gpa = db.Column(db.Float)                    # 직전학기 평점 (4.5 만점)
@@ -52,6 +58,7 @@ class Profile(db.Model):
     def to_dict(self):
         return {
             "university_id": self.university_id,
+            "region": self.region,
             "department": self.department,
             "grade": self.grade,
             "gpa": self.gpa,
@@ -80,6 +87,7 @@ class Scholarship(db.Model):
     max_grade = db.Column(db.Integer)
     min_credits = db.Column(db.Integer)
     required_flags = db.Column(db.Text)     # 이 중 하나 이상 해당해야 함(JSON)
+    region = db.Column(db.String(10))       # 이 시·군 거주자만 (None = 지역 조건 없음)
     departments = db.Column(db.Text)        # 학과 키워드 중 하나 포함(JSON)
 
     is_structured = db.Column(db.Boolean, default=False)  # 조건을 사람이 정리한 데이터인지

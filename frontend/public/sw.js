@@ -1,8 +1,8 @@
-// 장학매칭 서비스 워커: 앱 설치(PWA) + 오프라인에서도 화면 껍데기는 뜨도록 캐시
+// 혜택모아 서비스 워커: 앱 설치(PWA) + 오프라인에서도 화면 껍데기는 뜨도록 캐시
 // - /api 요청은 항상 네트워크 (장학 정보는 최신이어야 하므로 캐시하지 않음)
 // - 페이지 이동: 네트워크 우선, 실패 시 캐시된 index.html
 // - 정적 파일(js/css/아이콘): 캐시 우선
-const CACHE = 'scholarship-v1'
+const CACHE = 'scholarship-v2'
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png']
 
 self.addEventListener('install', (e) => {

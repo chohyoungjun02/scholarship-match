@@ -45,6 +45,7 @@ def _save_posts(posts, delay, detail_limit):
             added += 1
         s.title = post["title"][:300]
         s.posted_at = post["posted_at"] or s.posted_at
+        s.region = post.get("region")
 
         body = post.get("body")  # 목록에서 본문까지 주는 사이트(수원과학대)
         # 본문을 아직 못 읽은 글만 상세 페이지를 열어 조건을 추출 (1회 요청 수 제한,

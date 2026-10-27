@@ -9,14 +9,14 @@ from config import Config
 from crawler.run import crawl_stale, crawl_university, is_stale
 from crawler.universities import BY_ID, UNIVERSITIES, public_info
 from matcher import evaluate
-from models import FLAGS, CrawlLog, Scholarship, db
+from models import FLAGS, REGIONS, CrawlLog, Scholarship, db
 from seed import seed_programs
 
 
 def migrate():
     """create_all 은 기존 테이블에 컬럼을 추가하지 않으므로, 이전 버전 DB 에 새 컬럼을 붙인다."""
     insp = inspect(db.engine)
-    for table, column in [("profile", "university_id"), ("scholarship", "university_id")]:
+    for table, column in [("profile", "university_id"), ("scholarship", "university_id"), ("profile", "region"), ("scholarship", "region")]:
         if column not in [c["name"] for c in insp.get_columns(table)]:
             db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} VARCHAR(30)"))
     # 대학 선택 기능 이전에 수집한 한신대 공지는 대상 대학이 아니므로 정리
@@ -51,7 +51,7 @@ def create_app():
     @app.get("/api/profile")
     @login_required
     def get_profile():
-        return jsonify(profile=g.user.profile.to_dict(), flag_options=FLAGS)
+        return jsonify(profile=g.user.profile.to_dict(), flag_options=FLAGS, region_options=REGIONS)
 
     @app.put("/api/profile")
     @login_required
@@ -75,6 +75,9 @@ def create_app():
                 p.last_credits = num("last_credits", int)
                 p.income_bracket = num("income_bracket", int)
                 p.flags = json.dumps([f for f in data.get("flags", []) if f in FLAGS])
+                if data.get("region") not in REGIONS + [None, ""]:
+                    return jsonify(error="거주지는 경기도 시·군 중에서 선택해 주세요."), 400
+                p.region = data.get("region") or None
         except ValueError:
             return jsonify(error="숫자 항목을 올바르게 입력해 주세요."), 400
         if p.gpa is not None and not 0 <= p.gpa <= 4.5:

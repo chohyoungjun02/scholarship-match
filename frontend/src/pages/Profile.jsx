@@ -5,7 +5,7 @@ import { useAuth } from '../auth.jsx'
 import { InstallCard, useToast } from '../components/ui.jsx'
 import { useUniversities } from '../universities.js'
 
-const EMPTY = { university_id: '', department: '', grade: '', gpa: '', last_credits: '', income_bracket: '', flags: [] }
+const EMPTY = { university_id: '', region: '', department: '', grade: '', gpa: '', last_credits: '', income_bracket: '', flags: [] }
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -15,6 +15,7 @@ export default function Profile() {
   const universities = useUniversities()
   const [form, setForm] = useState(EMPTY)
   const [flagOptions, setFlagOptions] = useState({})
+  const [regionOptions, setRegionOptions] = useState([])
   const [error, setError] = useState('')
   const [toast, showToast] = useToast()
 
@@ -27,6 +28,7 @@ export default function Profile() {
         flags: p.flags || [],
       })
       setFlagOptions(d.flag_options)
+      setRegionOptions(d.region_options)
     }).catch((e) => setError(e.message))
   }, [])
 
@@ -74,6 +76,14 @@ export default function Profile() {
         </div>
         <span className="text-btn blue" style={{ padding: 0 }}>변경</span>
       </Link>
+
+      <label className="field">
+        <span>사는 곳 (주민등록 주소)</span>
+        <select className="select" value={form.region} onChange={set('region')}>
+          <option value="">선택 안 함</option>
+          {regionOptions.map((r) => <option key={r} value={r}>경기도 {r}</option>)}
+        </select>
+      </label>
 
       <label className="field">
         <span>학과</span>

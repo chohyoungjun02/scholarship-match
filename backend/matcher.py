@@ -60,6 +60,14 @@ def evaluate(profile, s):
         else:
             failed.append(f"{names} 대상")
 
+    if s.region:  # 시·군 거주자 대상 사업 (잡아바 어플라이)
+        if not profile.region:
+            unknown.append("거주지 정보 미입력")
+        elif profile.region == s.region:
+            passed.append(f"{s.region} 거주")
+        else:
+            failed.append(f"{s.region} 거주자 대상")
+
     depts = json.loads(s.departments or "[]")
     if depts:
         label = "학과(" + ", ".join(depts) + ")"

@@ -5,9 +5,12 @@
 """
 import html
 import json
+import re
 
 import requests
 from bs4 import BeautifulSoup
+
+from models import REGIONS
 
 from .base import HEADERS
 
@@ -17,6 +20,14 @@ DETAIL = "https://apply.jobaba.net/bsns/bsnsDetailView.do?bsnsSeq={}"
 KEYWORDS = ["청년", "대학", "학생", "장학", "학자금", "등록금"]
 MONEY = ["지원", "수당", "이자", "장학", "학자금", "등록금", "포인트"]
 EXCLUDE = ["참여기업", "기업 등록", "사업장", "특강", "교육생"]
+
+
+def region_of(address, title):
+    """사업 대상 시·군. 주소("경기도 이천시")가 비어 있으면 제목 머리말("[파주시]")로, 경기도 전체 사업이면 None"""
+    for word in (address or "").split() + re.findall(r"\[([^\]]+)\]", title):
+        if word in REGIONS:
+            return word
+    return None
 
 
 def crawl(delay=0.5):
@@ -46,5 +57,6 @@ def crawl(delay=0.5):
             "posted_at": row.get("bsnsStartDate"),
             "body": f"{period} · {region} · " + " ".join(body.split()),
             "source": "잡아바어플라이",
+            "region": region_of(row.get("adstrdAdres"), title),
         })
     return posts, []

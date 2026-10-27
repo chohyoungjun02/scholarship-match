@@ -61,7 +61,7 @@ export default function Home() {
   const count = (s) => items.filter((i) => i.match.status === s).length
   const shown = items.filter((i) => i.match.status === tab)
   const firstCrawl = crawling && !university.crawl
-  const profileEmpty = profile && !profile.grade && !profile.gpa && !profile.income_bracket
+  const profileEmpty = profile && ((!profile.grade && !profile.gpa && !profile.income_bracket) || !profile.region)
   // 학교 게시판 자동 수집에 실패했고 학교 공지가 하나도 없으면 홈페이지로 안내
   const schoolFailed = !crawling && university.crawl?.error && !items.some((i) => i.university_id)
 
@@ -90,7 +90,7 @@ export default function Home() {
       {profileEmpty && (
         <Link to="/profile" className="banner">
           <span style={{ fontSize: 24 }}>✍️</span>
-          <span className="body"><b>학년·평점·소득구간</b>을 입력하면<br />받을 수 있는 장학금을 더 정확히 알려드려요</span>
+          <span className="body"><b>사는 곳·학년·평점·소득구간</b>을 입력하면<br />받을 수 있는 장학금·지원금을 더 정확히 알려드려요</span>
           <span className="chev" style={{ color: 'var(--blue)' }}>{Icon.chevronRight}</span>
         </Link>
       )}

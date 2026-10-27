@@ -19,8 +19,8 @@ export default function Scholarships() {
     }).catch(() => setSchool(''))
   }, [])
 
-  // 내 학교 칩을 맨 앞에
-  const chips = [...universities].sort((a, b) => (b.id === mySchool) - (a.id === mySchool))
+  // 내 학교를 맨 앞에
+  const schoolOptions = [...universities].sort((a, b) => (b.id === mySchool) - (a.id === mySchool))
 
   useEffect(() => {
     if (school === null) return
@@ -40,16 +40,14 @@ export default function Scholarships() {
         <input className="input" placeholder="장학금 이름으로 검색" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
-      <div className="chips scroll" style={{ marginBottom: 8 }}>
-        {chips.map((u) => (
-          <button key={u.id} className={`chip ${school === u.id ? 'on' : ''}`} onClick={() => setSchool(u.id)}>
-            {u.id === mySchool ? `내 학교 · ${u.short}` : u.short}
-          </button>
+      <select className="select" style={{ marginBottom: 8 }} value={school ?? ''} onChange={(e) => setSchool(e.target.value)}>
+        <option value="">전체 대학</option>
+        {schoolOptions.map((u) => (
+          <option key={u.id} value={u.id}>{u.id === mySchool ? `내 학교 · ${u.name}` : `${u.name} (${u.city})`}</option>
         ))}
-        <button className={`chip ${school === '' ? 'on' : ''}`} onClick={() => setSchool('')}>전체 대학</button>
-      </div>
+      </select>
       <p className="caption" style={{ margin: '4px 0 8px' }}>
-        {school ? '선택한 학교 공지 + 한국장학재단 장학금' : '수원·화성·오산 모든 대학 + 한국장학재단'}
+        {school ? '선택한 학교 공지 + 한국장학재단 · 잡아바' : '경기도 모든 대학 + 한국장학재단 · 잡아바'}
         {items && ` · ${items.length}건`}
       </p>
 

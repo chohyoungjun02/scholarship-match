@@ -31,7 +31,7 @@ export default function Login() {
     <AuthHero />
     <form className="screen no-tab auth-form" onSubmit={submit} style={{ paddingTop: 72 }}>
       <h1 className="headline">{'받을 수 있는 장학금,\n'}<span className="accent">놓치지 마세요</span></h1>
-      <p className="sub">수원·화성·오산 대학생을 위한 맞춤 장학금 알림</p>
+      <p className="sub">경기도 대학생을 위한 맞춤 장학금 알림</p>
 
       <label className="field">
         <span>이메일</span>

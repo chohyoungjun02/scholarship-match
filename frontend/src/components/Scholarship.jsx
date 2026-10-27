@@ -6,13 +6,14 @@ export const STATUS = {
   ineligible: '해당 없음',
 }
 
-const isKosaf = (item) => !item.university_id
+// 학교 공지 🎓 / 한국장학재단 🏛️ / 잡아바 어플라이 💼
+const iconOf = (item) => (item.university_id ? ['school', '🎓'] : item.source === '잡아바어플라이' ? ['kosaf', '💼'] : ['kosaf', '🏛️'])
 
 export function ScholarshipRow({ item, onClick }) {
   const amount = item.match?.amount || item.amount_text
   return (
     <button className="list-row" onClick={() => onClick(item)}>
-      <div className={`icon ${isKosaf(item) ? 'kosaf' : 'school'}`}>{isKosaf(item) ? '🏛️' : '🎓'}</div>
+      <div className={`icon ${iconOf(item)[0]}`}>{iconOf(item)[1]}</div>
       <div className="body">
         <div className="title">{item.title}</div>
         <div className="meta">

@@ -15,7 +15,7 @@ from flask import current_app
 
 from models import CrawlLog, Scholarship, db
 
-from . import kosaf
+from . import jobaba, kosaf
 from .base import extract_body, extract_conditions, get_soup
 from .universities import BY_ID, UNIVERSITIES
 from .universities import crawl as crawl_univ_boards
@@ -76,10 +76,12 @@ def _run(key, fetch):
     return {"key": key, "found": len(posts), "added": added, "errors": errors}
 
 
-def crawl_kosaf(force=False):
-    if not force and not is_stale("kosaf"):
-        return None
-    return _run("kosaf", kosaf.crawl)
+# 모든 학교 학생에게 보여 주는 공통 출처 (university_id 없음)
+COMMON_SOURCES = {"kosaf": kosaf.crawl, "jobaba": jobaba.crawl}
+
+
+def crawl_common(force=False):
+    return [_run(key, fn) for key, fn in COMMON_SOURCES.items() if force or is_stale(key)]
 
 
 def crawl_university(university_id, force=False):
@@ -87,19 +89,13 @@ def crawl_university(university_id, force=False):
     results = []
     if force or is_stale(university_id):
         results.append(_run(university_id, lambda delay: crawl_univ_boards(univ, delay)))
-    kosaf_result = crawl_kosaf(force)
-    if kosaf_result:
-        results.append(kosaf_result)
-    return results
+    return results + crawl_common(force)
 
 
 def crawl_stale(time_budget_sec=45):
     """크롤링한 지 오래된 순서로, 제한 시간(서버리스 함수 실행 시간)을 넘지 않게 크롤링한다."""
     started = time.monotonic()
-    results = []
-    kosaf_result = crawl_kosaf()
-    if kosaf_result:
-        results.append(kosaf_result)
+    results = crawl_common()
 
     def last(uid):
         log = db.session.get(CrawlLog, uid)
@@ -115,7 +111,7 @@ def crawl_stale(time_budget_sec=45):
 
 def crawl_all():
     results = [_run(u["id"], lambda delay, u=u: crawl_univ_boards(u, delay)) for u in UNIVERSITIES]
-    results.append(_run("kosaf", kosaf.crawl))
+    results += crawl_common(force=True)
     return results
 
 

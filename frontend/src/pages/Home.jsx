@@ -62,6 +62,8 @@ export default function Home() {
   const shown = items.filter((i) => i.match.status === tab)
   const firstCrawl = crawling && !university.crawl
   const profileEmpty = profile && !profile.grade && !profile.gpa && !profile.income_bracket
+  // 학교 게시판 자동 수집에 실패했고 학교 공지가 하나도 없으면 홈페이지로 안내
+  const schoolFailed = !crawling && university.crawl?.error && !items.some((i) => i.university_id)
 
   return (
     <div className="screen home-grid">
@@ -78,6 +80,13 @@ export default function Home() {
         {!crawling && <button onClick={() => crawl(true)}>새로고침</button>}
       </div>
 
+      {schoolFailed && (
+        <a href={university.homepage} target="_blank" rel="noreferrer" className="banner" style={{ background: 'var(--orange-light)' }}>
+          <span style={{ fontSize: 24 }}>🏫</span>
+          <span className="body"><b style={{ color: 'var(--orange)' }}>{university.short} 공지는 아직 자동으로 못 가져와요</b><br />학교 홈페이지에서 장학 공지를 확인해 주세요</span>
+          <span className="chev" style={{ color: 'var(--orange)' }}>{Icon.chevronRight}</span>
+        </a>
+      )}
       {profileEmpty && (
         <Link to="/profile" className="banner">
           <span style={{ fontSize: 24 }}>✍️</span>

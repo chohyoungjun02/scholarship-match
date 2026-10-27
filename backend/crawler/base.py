@@ -26,6 +26,8 @@ DEFAULT_VIEW_PATTERNS = [
     (r"jf_viewArtcl\('(\w+)',\s*'(\d+)',\s*'(\d+)'\)", "/bbs/{0}/{1}/{2}/artclView.do"),
     # K2Web 포털게시판: jf_view('uhs', '4', '99257')
     (r"jf_view\('(\w+)',\s*'(\d+)',\s*'(\d+)'\)", "/portalBbs/{0}/{1}/{2}/view.do"),
+    # 수원대·오산대 등이 쓰는 CMS: submitForm(this,'view',1031)
+    (r"submitForm\(this,\s*'view',\s*(\d+)\)", "{page}&act=view&bbsno={0}"),
 ]
 
 DEFAULT_LINK_SELECTOR = "table tbody a, .board-list a, .board-list-wrap a, ul.board a, .bbs-list a, .list a"
@@ -43,7 +45,7 @@ def get_soup(url, delay=0.5):
 
 def get_text(url, delay=0.5):
     time.sleep(delay)
-    res = requests.get(url, headers=HEADERS, timeout=15, verify=False)
+    res = requests.get(url, headers=HEADERS, timeout=(5, 10), verify=False)
     res.raise_for_status()
     if res.encoding in (None, "ISO-8859-1"):
         res.encoding = res.apparent_encoding

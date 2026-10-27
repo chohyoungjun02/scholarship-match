@@ -117,11 +117,11 @@ export function AuthHero() {
   return (
     <aside className="auth-hero">
       <div className="auth-hero-inner">
-        <span className="badge src" style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>수원 · 화성 · 오산 11개 대학</span>
+        <span className="badge src" style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>경기도 67개 대학</span>
         <h2>{'우리 학교 장학금,\n한 곳에서 확인하세요'}</h2>
         <ul>
           <li>🏫 내 학교 장학 공지를 자동으로 모아와요</li>
-          <li>🏛️ 한국장학재단 국가장학금까지 함께</li>
+          <li>🏛️ 한국장학재단 국가장학금 · 💼 잡아바 지원사업까지 함께</li>
           <li>✅ 내 학년·평점·소득구간으로 지원 가능 여부 확인</li>
         </ul>
       </div>

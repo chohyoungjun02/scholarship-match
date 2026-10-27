@@ -65,7 +65,7 @@ def create_app():
 
         if "university_id" in data:
             if data["university_id"] not in BY_ID:
-                return jsonify(error="수원시·화성시·오산시 대학 중에서 선택해 주세요."), 400
+                return jsonify(error="경기도 대학 중에서 선택해 주세요."), 400
             p.university_id = data["university_id"]
         try:
             if "grade" in data:  # 학교만 바꾸는 요청도 허용

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { Icon, TopNav } from '../components/ui.jsx'
-import { CITIES, useUniversities } from '../universities.js'
+import { useUniversities } from '../universities.js'
 
 export default function SelectSchool() {
   const navigate = useNavigate()
@@ -18,7 +18,7 @@ export default function SelectSchool() {
     api('/profile').then((d) => setSelected(d.profile.university_id)).catch(() => {})
   }, [])
 
-  const filtered = universities.filter((u) => !q || u.name.includes(q) || u.short.includes(q))
+  const filtered = universities.filter((u) => !q || u.name.includes(q) || u.short.includes(q) || u.city.includes(q))
 
   const save = async () => {
     setBusy(true)
@@ -40,10 +40,10 @@ export default function SelectSchool() {
 
         <div className="search">
           {Icon.search}
-          <input className="input" placeholder="학교 이름 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input" placeholder="학교 이름이나 시 이름으로 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
 
-        {CITIES.map((city) => {
+        {[...new Set(universities.map((u) => u.city))].sort((a, b) => a.localeCompare(b, 'ko')).map((city) => {
           const list = filtered.filter((u) => u.city === city)
           if (!list.length) return null
           return (
@@ -65,7 +65,7 @@ export default function SelectSchool() {
           )
         })}
         {universities.length > 0 && filtered.length === 0 && (
-          <div className="empty">수원시·화성시·오산시 대학만 지원해요</div>
+          <div className="empty">경기도 대학만 지원해요</div>
         )}
         {error && <p className="error-text">{error}</p>}
 

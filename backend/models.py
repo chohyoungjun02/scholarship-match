@@ -76,6 +76,7 @@ class Scholarship(db.Model):
     title = db.Column(db.String(300), nullable=False)
     url = db.Column(db.String(500), unique=True, nullable=False)
     posted_at = db.Column(db.String(20))
+    deadline = db.Column(db.String(30))  # 접수 마감일 YYYY-MM-DD (None = 모름/상시)
     description = db.Column(db.Text)
     amount_text = db.Column(db.String(200))
     amount_by_bracket = db.Column(db.Text)  # {"0": "등록금 전액", "1-3": "연 600만원"} 형식(JSON)
@@ -102,6 +103,7 @@ class Scholarship(db.Model):
             "title": self.title,
             "url": self.url,
             "posted_at": self.posted_at,
+            "deadline": self.deadline,
             "description": (self.description or "")[:500],
             "amount_text": self.amount_text,
             "conditions": {

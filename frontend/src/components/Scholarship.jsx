@@ -49,7 +49,9 @@ export function ScholarshipSheet({ item, onClose }) {
                 {m.failed.map((r) => <li key={r} className="no"><span className="mark">✕</span>{r}</li>)}
                 {m.unknown.map((r) => <li key={r} className="unk"><span className="mark">?</span>{r}</li>)}
                 {!item.is_structured && (
-                  <li className="unk"><span className="mark">?</span>자동으로 수집한 공고예요. 원문에서 자격 요건을 꼭 확인하세요.</li>
+                  <li className="unk"><span className="mark">?</span>
+                    {m.status === 'eligible' ? '공지 본문에서 읽은 조건 기준이에요. 신청 전 원문을 꼭 확인하세요.' : '자동으로 수집한 공고예요. 원문에서 자격 요건을 꼭 확인하세요.'}
+                  </li>
                 )}
               </ul>
             </>

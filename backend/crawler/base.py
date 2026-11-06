@@ -1,6 +1,7 @@
 """크롤러 공통 기능: HTTP 요청, 게시판 목록 파싱, 본문에서 자격 조건 추출."""
 import re
 import time
+from datetime import date
 from urllib.parse import urljoin
 
 import requests
@@ -128,6 +129,34 @@ FLAG_KEYWORDS = {
     "veteran_family": ["국가유공자", "보훈"],
     "single_parent": ["한부모"],
 }
+
+
+TITLE_DEADLINE_RE = re.compile(r"~\s*(\d{1,2})\s*/\s*(\d{1,2})")  # 제목의 "(~11/06까지)"
+# "신청기간 : 2026. 9. 30.(수) ~ 10. 11.(일)" 처럼 접수 관련 기간의 '~' 뒤 날짜
+PERIOD_END_RE = re.compile(r"(?:신청|접수|제출|선발|추천|모집)\s*(?:기간|기한)[^~∼\n]{0,40}[~∼]\s*"
+                           r"(?:'?(\d{2,4})\s*[.\-년]\s*)?(\d{1,2})\s*[.\-월]\s*(\d{1,2})")
+
+
+def extract_deadline(title, text, posted_at=None):
+    """접수 마감일(YYYY-MM-DD). 연도가 없으면 게시일 연도로, 게시일보다 한참 앞이면 다음 해로 본다."""
+    # 기간 연장 공지는 제목의 날짜가 최신이라 제목을 먼저 본다
+    if m := TITLE_DEADLINE_RE.search(title):
+        year, (month, day) = None, m.groups()
+    elif m := PERIOD_END_RE.search(text):
+        year, month, day = m.groups()
+    else:
+        return None
+    posted = DATE_RE.match(posted_at or "")
+    try:
+        if year:
+            d = date(int(year) + (2000 if len(year) == 2 else 0), int(month), int(day))
+        else:
+            d = date(int(posted.group(1)) if posted else date.today().year, int(month), int(day))
+            if posted and (date(*map(int, posted.groups())) - d).days > 60:  # 12월 공지의 1월 마감
+                d = d.replace(year=d.year + 1)
+    except ValueError:
+        return None
+    return d.isoformat()
 
 
 def extract_conditions(text):

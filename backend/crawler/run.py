@@ -16,7 +16,7 @@ from flask import current_app
 from models import CrawlLog, Scholarship, db
 
 from . import jobaba, kosaf
-from .base import extract_body, extract_conditions, get_soup
+from .base import extract_body, extract_conditions, extract_deadline, get_soup
 from .universities import BY_ID, UNIVERSITIES
 from .universities import crawl as crawl_univ_boards
 
@@ -59,6 +59,7 @@ def _save_posts(posts, delay, detail_limit):
         if body and not s.description:
             s.description = body[:3000]
             apply_conditions(s, extract_conditions(s.title + " " + body))
+            s.deadline = extract_deadline(s.title, body, s.posted_at)
     return added, errors
 
 

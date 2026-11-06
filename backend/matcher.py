@@ -80,8 +80,8 @@ def evaluate(profile, s):
 
     if failed:
         status = "ineligible"
-    elif unknown or not s.is_structured:
-        # 크롤링한 공지는 조건을 완전히 파악할 수 없으므로 '확인 필요'
+    elif unknown or (not s.is_structured and not passed):
+        # 크롤링한 공지는 본문에서 조건을 하나도 못 읽었으면 판단할 수 없으므로 '확인 필요'
         status = "check"
     else:
         status = "eligible"

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
@@ -6,6 +7,7 @@ from sqlalchemy import inspect, or_, text
 
 from auth import auth_bp, login_required
 from config import Config
+from crawler.base import extract_deadline
 from crawler.run import COMMON_SOURCES, crawl_stale, crawl_university, is_stale
 from crawler.universities import BY_ID, UNIVERSITIES, public_info
 from matcher import evaluate
@@ -16,9 +18,15 @@ from seed import seed_programs
 def migrate():
     """create_all 은 기존 테이블에 컬럼을 추가하지 않으므로, 이전 버전 DB 에 새 컬럼을 붙인다."""
     insp = inspect(db.engine)
-    for table, column in [("profile", "university_id"), ("scholarship", "university_id"), ("profile", "region"), ("scholarship", "region")]:
+    added = []
+    for table, column in [("profile", "university_id"), ("scholarship", "university_id"), ("profile", "region"),
+                          ("scholarship", "region"), ("scholarship", "deadline")]:
         if column not in [c["name"] for c in insp.get_columns(table)]:
             db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} VARCHAR(30)"))
+            added.append(column)
+    if "deadline" in added:  # 이미 수집한 공고도 본문에서 마감일을 채워 둔다
+        for s in Scholarship.query.filter(Scholarship.description.isnot(None)):
+            s.deadline = extract_deadline(s.title, s.description, s.posted_at)
     # 대학 선택 기능 이전에 수집한 한신대 공지는 대상 대학이 아니므로 정리
     Scholarship.query.filter(Scholarship.university_id.is_(None), Scholarship.source == "한신대").delete()
     db.session.commit()
@@ -88,15 +96,20 @@ def create_app():
         return jsonify(profile=p.to_dict())
 
     # ---------------- 장학금 ----------------
+    def open_scholarships():
+        """접수 마감일이 지난 공고는 뺀다 (마감일을 모르는 공고는 남김)"""
+        today = datetime.now(timezone(timedelta(hours=9))).date().isoformat()  # 한국 시간 기준
+        return Scholarship.query.filter(or_(Scholarship.deadline.is_(None), Scholarship.deadline >= today))
+
     def scholarships_for(university_id):
         """선택한 대학의 공지 + 모든 대학생 대상(한국장학재단)"""
-        return Scholarship.query.filter(or_(Scholarship.university_id == university_id,
-                                            Scholarship.university_id.is_(None)))
+        return open_scholarships().filter(or_(Scholarship.university_id == university_id,
+                                              Scholarship.university_id.is_(None)))
 
     @app.get("/api/scholarships")
     def list_scholarships():
         uid = request.args.get("university")
-        q = scholarships_for(uid) if uid in BY_ID else Scholarship.query
+        q = scholarships_for(uid) if uid in BY_ID else open_scholarships()
         if keyword := request.args.get("q"):
             q = q.filter(Scholarship.title.contains(keyword))
         # 대학 공지(최신순) → 한국장학재단 프로그램 → 한국장학재단 공지

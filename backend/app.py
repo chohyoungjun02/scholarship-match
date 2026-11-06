@@ -6,7 +6,7 @@ from sqlalchemy import inspect, or_, text
 
 from auth import auth_bp, login_required
 from config import Config
-from crawler.run import crawl_stale, crawl_university, is_stale
+from crawler.run import COMMON_SOURCES, crawl_stale, crawl_university, is_stale
 from crawler.universities import BY_ID, UNIVERSITIES, public_info
 from matcher import evaluate
 from models import FLAGS, REGIONS, CrawlLog, Scholarship, db
@@ -26,7 +26,9 @@ def migrate():
 
 def university_payload(uid):
     log = db.session.get(CrawlLog, uid)
-    return {**public_info(BY_ID[uid]), "crawl": log.to_dict() if log else None, "stale": is_stale(uid)}
+    return {**public_info(BY_ID[uid]), "crawl": log.to_dict() if log else None,
+            # 학교 공지가 최신이어도 한국장학재단·잡아바가 오래됐으면 다시 수집하도록
+            "stale": is_stale(uid) or any(is_stale(k) for k in COMMON_SOURCES)}
 
 
 def create_app():

@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="frontend/public/icons/icon-192.png" width="88" alt="혜택모아 아이콘" />
+<img src="frontend/public/icons/icon-192.png" width="88" alt="장학모아 아이콘" />
 
-# 혜택모아
+# 장학모아
 
 **경기도 대학생 장학금·지원금, 한 번에 모아 보는 서비스**
 

@@ -15,8 +15,9 @@ from flask import current_app
 
 from models import CrawlLog, Scholarship, db
 
-from . import jobaba, kosaf
-from .base import extract_body, extract_conditions, extract_deadline, get_soup
+from . import jobaba, kosaf, opendata
+from .base import (extract_body, extract_conditions, extract_deadline, extract_region, get_soup,
+                   is_admin_notice)
 from .universities import BY_ID, UNIVERSITIES
 from .universities import crawl as crawl_univ_boards
 
@@ -37,6 +38,8 @@ def _save_posts(posts, delay, detail_limit):
     added = details = 0
     errors = []
     for post in posts:
+        if is_admin_notice(post["title"]):
+            continue
         s = Scholarship.query.filter_by(url=post["url"]).first()
         if s is None:
             s = Scholarship(url=post["url"], source=post["source"], category="공지",
@@ -45,7 +48,7 @@ def _save_posts(posts, delay, detail_limit):
             added += 1
         s.title = post["title"][:300]
         s.posted_at = post["posted_at"] or s.posted_at
-        s.region = post.get("region")
+        s.region = post.get("region") or s.region  # 제목에서 읽은 지역(…시장학회)을 지우지 않도록
 
         body = post.get("body")  # 목록에서 본문까지 주는 사이트(수원과학대)
         # 본문을 아직 못 읽은 글만 상세 페이지를 열어 조건을 추출 (1회 요청 수 제한,
@@ -58,9 +61,26 @@ def _save_posts(posts, delay, detail_limit):
                 errors.append(f"상세 {post['url']}: {e}")
         if body and not s.description:
             s.description = body[:3000]
-            apply_conditions(s, extract_conditions(s.title + " " + body))
-            s.deadline = extract_deadline(s.title, body, s.posted_at)
+            refresh_conditions(s)
+        for key in CARD_FIELDS:  # 공공데이터처럼 항목이 정리된 출처는 본문 추출보다 우선
+            if post.get(key) is not None:
+                setattr(s, key, post[key])
     return added, errors
+
+
+CARD_FIELDS = ("kind", "agency", "target_text", "amount_text", "deadline", "min_age", "max_age")
+
+
+EXTRACTED = ("max_income_bracket", "min_gpa", "min_credits", "min_grade", "max_grade", "amount_text", "required_flags")
+
+
+def refresh_conditions(s):
+    """제목·본문에서 조건과 마감일을 다시 읽는다 (추출 규칙을 고치면 이미 수집한 공고에도 반영되도록)"""
+    for key in EXTRACTED:
+        setattr(s, key, None)
+    apply_conditions(s, extract_conditions(s.title + " " + (s.description or "")))
+    s.region = extract_region(s.title) or s.region
+    s.deadline = extract_deadline(s.title, s.description or "", s.posted_at)
 
 
 def _run(key, fetch):
@@ -79,7 +99,8 @@ def _run(key, fetch):
 
 
 # 모든 학교 학생에게 보여 주는 공통 출처 (university_id 없음)
-COMMON_SOURCES = {"kosaf": kosaf.crawl, "jobaba": jobaba.crawl}
+COMMON_SOURCES = {"kosaf": kosaf.crawl, "jobaba": jobaba.crawl, "gov24": opendata.crawl_gov24,
+                  "youthcenter": opendata.crawl_youthcenter, "work24": opendata.crawl_work24}
 
 
 def crawl_common(force=False):

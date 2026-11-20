@@ -23,6 +23,9 @@ export const Icon = {
   list: (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="4" rx="2" /><rect x="3" y="10" width="18" height="4" rx="2" /><rect x="3" y="16" width="18" height="4" rx="2" /></svg>
   ),
+  star: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" /></svg>
+  ),
   user: (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4.5" /><path d="M3.5 20.5c0-4.4 3.8-7 8.5-7s8.5 2.6 8.5 7a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5z" /></svg>
   ),
@@ -71,7 +74,7 @@ export function InstallCard() {
     <div className="banner" style={{ marginTop: 24 }}>
       <img src="/icons/icon-192.png" alt="" width="40" height="40" style={{ borderRadius: 10 }} />
       <span className="body">
-        <b>장학모아 앱 설치</b><br />
+        <b>혜택모아 앱 설치</b><br />
         {ios ? '사파리 공유 버튼 → "홈 화면에 추가"를 눌러주세요' : '홈 화면에서 앱처럼 바로 열 수 있어요'}
       </span>
       {canPrompt && <button type="button" className="btn small" onClick={install}>설치</button>}
@@ -85,11 +88,12 @@ export function TopHeader({ user, onLogout }) {
   return (
     <header className="topheader">
       <div className="topheader-inner">
-        <NavLink to="/" className="brand"><span className="brand-mark">🎓</span>장학모아</NavLink>
+        <NavLink to="/" className="brand"><span className="brand-mark">🎁</span>혜택모아</NavLink>
         {user && (
           <nav>
             <NavLink to="/" end>맞춤 장학금</NavLink>
             <NavLink to="/all">전체 공고</NavLink>
+            <NavLink to="/saved">저장</NavLink>
             <NavLink to="/profile">내 정보</NavLink>
           </nav>
         )}
@@ -121,7 +125,7 @@ export function AuthHero() {
         <h2>{'우리 학교 장학금,\n한 곳에서 확인하세요'}</h2>
         <ul>
           <li>🏫 내 학교 장학 공지를 자동으로 모아와요</li>
-          <li>🏛️ 한국장학재단 국가장학금 · 💼 잡아바 지원사업까지 함께</li>
+          <li>🏛️ 장학금 · 🏠 생활 지원 · 📚 국비 교육 · 💼 지역 사업까지 함께</li>
           <li>✅ 내 학년·평점·소득구간으로 지원 가능 여부 확인</li>
         </ul>
       </div>
@@ -134,6 +138,7 @@ export function TabBar() {
     <nav className="tabbar">
       <NavLink to="/" end>{Icon.home}홈</NavLink>
       <NavLink to="/all">{Icon.list}전체 공고</NavLink>
+      <NavLink to="/saved">{Icon.star}저장</NavLink>
       <NavLink to="/profile">{Icon.user}내 정보</NavLink>
     </nav>
   )

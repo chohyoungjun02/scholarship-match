@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
-import { ScholarshipRow, ScholarshipSheet } from '../components/Scholarship.jsx'
+import { ScholarshipRow, ScholarshipSheet, useCardFilter } from '../components/Scholarship.jsx'
 import { Icon } from '../components/ui.jsx'
 import { useUniversities } from '../universities.js'
 
@@ -11,6 +11,7 @@ export default function Scholarships() {
   const [items, setItems] = useState(null)
   const [q, setQ] = useState('')
   const [selected, setSelected] = useState(null)
+  const [filters, shown] = useCardFilter(items)
 
   useEffect(() => {
     api('/profile').then((d) => {
@@ -37,7 +38,7 @@ export default function Scholarships() {
 
       <div className="search">
         {Icon.search}
-        <input className="input" placeholder="장학금 이름으로 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input" placeholder="장학금·지원 이름으로 검색" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
       <select className="select" style={{ marginBottom: 8 }} value={school ?? ''} onChange={(e) => setSchool(e.target.value)}>
@@ -47,16 +48,17 @@ export default function Scholarships() {
         ))}
       </select>
       <p className="caption" style={{ margin: '4px 0 8px' }}>
-        {school ? '선택한 학교 공지 + 한국장학재단 · 잡아바' : '경기도 모든 대학 + 한국장학재단 · 잡아바'}
-        {items && ` · ${items.length}건`}
+        {school ? '선택한 학교 공지 + 공통 지원(장학재단·청년정책·국비교육·지역사업)' : '경기도 모든 대학 + 공통 지원'}
+        {items && ` · ${shown.length}건`}
       </p>
 
+      {filters}
       <div className="list">
         {!items && [1, 2, 3, 4].map((i) => <div key={i} className="skeleton" />)}
         {items?.length === 0 && (
           <div className="empty"><span className="emoji">📭</span>아직 가져온 공고가 없어요.<br />홈에서 새로고침을 눌러 보세요.</div>
         )}
-        {items?.map((item) => <ScholarshipRow key={item.id} item={item} onClick={setSelected} />)}
+        {items && shown.map((item) => <ScholarshipRow key={item.id} item={item} onClick={setSelected} />)}
       </div>
       <ScholarshipSheet item={selected} onClose={() => setSelected(null)} />
     </div>

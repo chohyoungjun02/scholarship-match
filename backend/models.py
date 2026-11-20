@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -20,6 +20,13 @@ FLAGS = {
     "veteran_family": "국가유공자(자녀)",
     "single_parent": "한부모 가정",
 }
+
+STATUSES = ["재학", "휴학", "졸업예정", "미취업", "재직"]
+# 가구 소득: 기준중위소득 몇 % 이하인지 (None = 모름)
+MEDIAN_INCOMES = {50: "기준중위소득 50% 이하", 60: "60% 이하", 100: "100% 이하", 150: "150% 이하", 200: "150% 초과"}
+INTERESTS = ["IT", "디자인", "사무", "서비스", "제조", "기타"]
+# 지원 카드 분류
+KINDS = ["장학금", "생활지원", "국비교육", "지역사업"]
 
 
 class User(db.Model):
@@ -51,12 +58,28 @@ class Profile(db.Model):
     last_credits = db.Column(db.Integer)         # 직전학기 이수학점
     income_bracket = db.Column(db.Integer)       # 학자금 지원구간 1~10
     flags = db.Column(db.Text, default="[]")     # FLAGS 키 목록(JSON)
+    birth_date = db.Column(db.String(10))        # YYYY-MM-DD
+    status = db.Column(db.String(10))            # STATUSES
+    median_income = db.Column(db.Integer)        # MEDIAN_INCOMES 키
+    interest = db.Column(db.String(10))          # INTERESTS
 
     def flag_list(self):
         return json.loads(self.flags or "[]")
 
+    def age(self, today=None):
+        """만 나이"""
+        if not self.birth_date:
+            return None
+        today = today or date.today()
+        b = date.fromisoformat(self.birth_date)
+        return today.year - b.year - ((today.month, today.day) < (b.month, b.day))
+
     def to_dict(self):
         return {
+            "birth_date": self.birth_date,
+            "status": self.status,
+            "median_income": self.median_income,
+            "interest": self.interest,
             "university_id": self.university_id,
             "region": self.region,
             "department": self.department,
@@ -91,13 +114,35 @@ class Scholarship(db.Model):
     region = db.Column(db.String(10))       # 이 시·군 거주자만 (None = 지역 조건 없음)
     departments = db.Column(db.Text)        # 학과 키워드 중 하나 포함(JSON)
 
+    # ---- 공통 카드 필드 (공공데이터·운영자 등록) ----
+    kind = db.Column(db.String(10))         # KINDS (None 이면 출처로 추정)
+    agency = db.Column(db.String(100))      # 운영 기관 (값이 있으면 공공데이터·운영자 카드)
+    target_text = db.Column(db.Text)        # 대상 (원문)
+    apply_start = db.Column(db.String(10))  # 신청 시작일
+    min_age = db.Column(db.Integer)
+    max_age = db.Column(db.Integer)
+    statuses = db.Column(db.Text)           # 이 신분 중 하나여야 함(JSON, STATUSES)
+    max_median_income = db.Column(db.Integer)  # 기준중위소득 % 이하
+    interests = db.Column(db.Text)          # 관련 관심 분야(JSON, INTERESTS)
+
     is_structured = db.Column(db.Boolean, default=False)  # 조건을 사람이 정리한 데이터인지
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def kind_or_guess(self):
+        return self.kind or ("지역사업" if self.source == "잡아바어플라이" else "장학금")
 
     def to_dict(self):
         return {
             "id": self.id,
             "source": self.source,
+            "kind": self.kind_or_guess(),
+            "agency": self.agency,
+            "target_text": self.target_text,
+            "apply_start": self.apply_start,
+            "region": self.region,
+            "min_age": self.min_age,
+            "max_age": self.max_age,
+            "verified_at": self.updated_at.date().isoformat() if self.updated_at else None,
             "university_id": self.university_id,
             "category": self.category,
             "title": self.title,
@@ -117,6 +162,13 @@ class Scholarship(db.Model):
             },
             "is_structured": self.is_structured,
         }
+
+
+class Saved(db.Model):
+    """관심 지원 저장 (마감 알림 대상)"""
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    scholarship_id = db.Column(db.Integer, db.ForeignKey("scholarship.id", ondelete="CASCADE"), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class CrawlLog(db.Model):

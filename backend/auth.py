@@ -4,7 +4,7 @@ from functools import wraps
 import jwt
 from flask import Blueprint, current_app, g, jsonify, request
 
-from models import Profile, User, db
+from models import Profile, Saved, User, db
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -37,6 +37,25 @@ def login_required(fn):
     return wrapper
 
 
+def is_admin(user):
+    return user.email in current_app.config["ADMIN_EMAILS"]
+
+
+def admin_required(fn):
+    @wraps(fn)
+    @login_required
+    def wrapper(*args, **kwargs):
+        if not is_admin(g.user):
+            return jsonify(error="운영자만 쓸 수 있어요."), 403
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def user_payload(user):
+    return {**user.to_dict(), "is_admin": is_admin(user)}
+
+
 @auth_bp.post("/register")
 def register():
     data = request.get_json() or {}
@@ -53,7 +72,7 @@ def register():
     user.profile = Profile()
     db.session.add(user)
     db.session.commit()
-    return jsonify(token=make_token(user), user=user.to_dict()), 201
+    return jsonify(token=make_token(user), user=user_payload(user)), 201
 
 
 @auth_bp.post("/login")
@@ -62,19 +81,20 @@ def login():
     user = User.query.filter_by(email=(data.get("email") or "").strip().lower()).first()
     if not user or not user.check_password(data.get("password") or ""):
         return jsonify(error="이메일 또는 비밀번호가 올바르지 않습니다."), 401
-    return jsonify(token=make_token(user), user=user.to_dict())
+    return jsonify(token=make_token(user), user=user_payload(user))
 
 
 @auth_bp.get("/me")
 @login_required
 def me():
-    return jsonify(user=g.user.to_dict())
+    return jsonify(user=user_payload(g.user))
 
 
 @auth_bp.delete("/me")
 @login_required
 def delete_me():
-    """회원 탈퇴: 계정과 프로필을 삭제한다."""
+    """회원 탈퇴: 계정과 프로필, 저장한 지원을 삭제한다."""
+    Saved.query.filter_by(user_id=g.user.id).delete()
     db.session.delete(g.user)
     db.session.commit()
     return jsonify(ok=True)

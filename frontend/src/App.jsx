@@ -5,7 +5,9 @@ import { TabBar, TopHeader, useIsDesktop } from './components/ui.jsx'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import Profile from './pages/Profile.jsx'
+import Admin from './pages/Admin.jsx'
 import Register from './pages/Register.jsx'
+import Saved from './pages/Saved.jsx'
 import Scholarships from './pages/Scholarships.jsx'
 import SelectSchool from './pages/SelectSchool.jsx'
 
@@ -15,7 +17,7 @@ function Private({ children }) {
   return user ? children : <Navigate to="/login" replace />
 }
 
-const TAB_PATHS = ['/', '/all', '/profile']
+const TAB_PATHS = ['/', '/all', '/saved', '/profile']
 
 export default function App() {
   const { user, logout } = useAuth()
@@ -39,6 +41,8 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/school" element={<Private><SelectSchool /></Private>} />
         <Route path="/profile" element={<Private><Profile /></Private>} />
+        <Route path="/saved" element={<Private><Saved /></Private>} />
+        <Route path="/admin" element={<Private><Admin /></Private>} />
         <Route path="/all" element={<Private><Scholarships /></Private>} />
         <Route path="/" element={<Private><Home /></Private>} />
         <Route path="*" element={<Navigate to="/" replace />} />

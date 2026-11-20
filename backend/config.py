@@ -32,3 +32,5 @@ class Config:
     CRAWL_DELAY_SEC = float(os.environ.get("CRAWL_DELAY_SEC", "0.3"))
     # Vercel Cron 이 보내는 Authorization: Bearer <CRON_SECRET> 확인용
     CRON_SECRET = os.environ.get("CRON_SECRET")
+    # 운영자 화면(지원 수동 등록)을 쓸 수 있는 이메일, 쉼표로 구분
+    ADMIN_EMAILS = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]

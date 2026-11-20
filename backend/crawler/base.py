@@ -19,6 +19,14 @@ DATE_RE = re.compile(r"(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})")
 
 # 장학 관련 글만 남기기 위한 제목 키워드
 SCHOLAR_KEYWORDS = ["장학", "근로", "학자금", "등록금", "대출", "생활비"]
+# 장학 키워드가 있어도 학생이 새로 신청할 수 없는 행정 공지(결과 발표, 앱 사용법, 환수 공고 등)
+ADMIN_NOTICE_RE = re.compile(r"결과|위치정보|출근부|환수|공시송달|서약서|지급요청서|보증보험|근로기관|회의록|설문조사|"
+                             r"모니터링|사용내역|카드 발급|면접 사전|서비스 중단|점검|사전교육|계좌입력|추천서 필요시|"
+                             r"통학로|PICK 이용|대학원")
+
+
+def is_admin_notice(title):
+    return bool(ADMIN_NOTICE_RE.search(title))
 
 # href 대신 onclick 등의 자바스크립트로 상세 페이지를 여는 게시판 패턴
 # (정규식, 상세 URL 템플릿) - 템플릿의 {0},{1}.. 은 정규식 그룹, {page} 는 목록 주소
@@ -131,7 +139,16 @@ FLAG_KEYWORDS = {
 }
 
 
-TITLE_DEADLINE_RE = re.compile(r"~\s*(\d{1,2})\s*/\s*(\d{1,2})")  # 제목의 "(~11/06까지)"
+# "논산시장학회", "은평구민", "거창군 지역출신" 처럼 특정 시·군·구 주민·출신 대상 장학회
+REGION_TITLE_RE = re.compile(r"([가-힣]{1,5}(?:시|군|구))(?:민|\s*(?:미래)?(?:장학회|장학재단|인재육성|지역\s*출신))")
+
+
+def extract_region(title):
+    m = REGION_TITLE_RE.search(title)
+    return m.group(1) if m else None
+
+
+TITLE_DEADLINE_RE =re.compile(r"~\s*(\d{1,2})\s*/\s*(\d{1,2})")  # 제목의 "(~11/06까지)"
 # "신청기간 : 2026. 9. 30.(수) ~ 10. 11.(일)" 처럼 접수 관련 기간의 '~' 뒤 날짜
 PERIOD_END_RE = re.compile(r"(?:신청|접수|제출|선발|추천|모집)\s*(?:기간|기한)[^~∼\n]{0,40}[~∼]\s*"
                            r"(?:'?(\d{2,4})\s*[.\-년]\s*)?(\d{1,2})\s*[.\-월]\s*(\d{1,2})")
@@ -162,12 +179,14 @@ def extract_deadline(title, text, posted_at=None):
 def extract_conditions(text):
     """공지 본문에서 자격 조건을 '추정'한다. 정확하지 않을 수 있으므로 결과는 '확인 필요'로 표시된다."""
     cond = {}
-    m = re.search(r"(\d{1,2})\s*구간\s*이하", text)
+    m = re.search(r"(\d{1,2})\s*구간\s*이하", text) or re.search(r"\d{1,2}\s*[~\-]\s*(\d{1,2})\s*구간", text)
     if m:
         cond["max_income_bracket"] = int(m.group(1))
     m = re.search(r"평[균점][^0-9]{0,10}([1-4]\.\d{1,2})\s*(?:점)?\s*이상", text)
     if m:
         cond["min_gpa"] = float(m.group(1))
+    elif m := re.search(r"(?:평점|성적)[^가-힣\d]{0,5}([ABC])\s*([+0])?\s*이상", text):  # "평점 B0 이상"
+        cond["min_gpa"] = {"A": 4.0, "B": 3.0, "C": 2.0}[m.group(1)] + (0.5 if m.group(2) == "+" else 0)
     m = re.search(r"(\d{1,2})\s*학점\s*이상", text)
     if m and 6 <= int(m.group(1)) <= 21:
         cond["min_credits"] = int(m.group(1))
@@ -178,6 +197,8 @@ def extract_conditions(text):
         m = re.search(r"([1-4])\s*학년\s*(?:재학생|대상|만)", text)
         if m:
             cond["min_grade"] = cond["max_grade"] = int(m.group(1))
+        elif "신입생" in text[:300] and "재학생" not in text[:300]:
+            cond["min_grade"] = cond["max_grade"] = 1
     # 제목/본문 앞부분에 대상자로 명시된 경우만 필수 조건으로 본다.
     head = text[:300]
     flags = [k for k, words in FLAG_KEYWORDS.items() if any(w in head for w in words)]

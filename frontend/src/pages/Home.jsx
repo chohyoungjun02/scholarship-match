@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
-import { ScholarshipRow, ScholarshipSheet, STATUS } from '../components/Scholarship.jsx'
+import { ddayOf, ScholarshipRow, ScholarshipSheet, STATUS, useCardFilter } from '../components/Scholarship.jsx'
 import { Icon, timeAgo, useToast } from '../components/ui.jsx'
 
 export default function Home() {
@@ -16,6 +16,7 @@ export default function Home() {
   const [selected, setSelected] = useState(null)
   const [toast, showToast] = useToast()
   const autoCrawled = useRef(false)
+  const [filters, shown] = useCardFilter((data?.items || []).filter((i) => i.match.status === tab))
 
   const load = useCallback(() =>
     api('/matches').then((d) => {
@@ -59,9 +60,15 @@ export default function Home() {
 
   const { items, university } = data
   const count = (s) => items.filter((i) => i.match.status === s).length
-  const shown = items.filter((i) => i.match.status === tab)
   const firstCrawl = crawling && !university.crawl
-  const profileEmpty = profile && ((!profile.grade && !profile.gpa && !profile.income_bracket) || !profile.region)
+  const profileEmpty = profile && ((!profile.grade && !profile.gpa && !profile.income_bracket) || !profile.region || !profile.birth_date)
+  // 저장한 지원 중 마감 7일 이내 (마감 알림)
+  const alerts = items.filter((i) => i.saved && ddayOf(i.deadline) !== null && ddayOf(i.deadline) <= 7)
+  const onSavedChange = (item, saved) => {
+    setData({ ...data, items: items.map((i) => (i.id === item.id ? { ...i, saved } : i)) })
+    setSelected({ ...item, saved })
+    showToast(saved ? '저장했어요. 마감 7일 전부터 알려드려요' : '저장을 취소했어요')
+  }
   // 학교 게시판 자동 수집에 실패했고 학교 공지가 하나도 없으면 홈페이지로 안내
   const schoolFailed = !crawling && university.crawl?.error && !items.some((i) => i.university_id)
 
@@ -70,8 +77,8 @@ export default function Home() {
       <aside className="home-side">
       <Link to="/school" className="school-switch">{university.name}{Icon.chevronDown}</Link>
       <h1 className="big-number">
-        {user?.name}님이 지원할 수 있는<br />
-        장학금 <span className="accent">{count('eligible')}개</span>
+        {user?.name}님이 받을 수 있는<br />
+        장학금·지원 <span className="accent">{count('eligible')}개</span>
       </h1>
       <div className="updated">
         {crawling ? <span>공지 가져오는 중…</span> : university.crawl
@@ -87,10 +94,18 @@ export default function Home() {
           <span className="chev" style={{ color: 'var(--orange)' }}>{Icon.chevronRight}</span>
         </a>
       )}
+      {alerts.length > 0 && (
+        <div className="alert-list">
+          <b>⏰ 저장한 지원 {alerts.length}개가 곧 마감돼요</b>
+          {alerts.map((i) => (
+            <button key={i.id} onClick={() => setSelected(i)}>{ddayOf(i.deadline) === 0 ? '오늘 마감' : `D-${ddayOf(i.deadline)}`} · {i.title}</button>
+          ))}
+        </div>
+      )}
       {profileEmpty && (
         <Link to="/profile" className="banner">
           <span style={{ fontSize: 24 }}>✍️</span>
-          <span className="body"><b>사는 곳·학년·평점·소득구간</b>을 입력하면<br />받을 수 있는 장학금·지원금을 더 정확히 알려드려요</span>
+          <span className="body"><b>생년월일·사는 곳·신분·소득</b>을 입력하면<br />받을 수 있는 장학금·지원금을 더 정확히 알려드려요</span>
           <span className="chev" style={{ color: 'var(--blue)' }}>{Icon.chevronRight}</span>
         </Link>
       )}
@@ -110,6 +125,7 @@ export default function Home() {
 
       <section className="home-main">
       <h2 className="section-title web-only">{STATUS[tab]} 공고 {shown.length}개</h2>
+      {filters}
       {firstCrawl ? (
         <div className="loading-card">
           <div className="spinner" />
@@ -122,7 +138,7 @@ export default function Home() {
           {shown.length === 0 && (
             <div className="empty">
               <span className="emoji">{tab === 'eligible' ? '🔍' : '📭'}</span>
-              {tab === 'eligible' ? <>조건이 확실히 맞는 장학금이 아직 없어요.<br />'확인 필요' 공고도 살펴보세요.</> : '해당하는 공고가 없어요'}
+              {tab === 'eligible' ? <>조건이 확실히 맞는 지원이 아직 없어요.<br />'확인 필요' 공고도 살펴보세요.</> : '해당하는 공고가 없어요'}
             </div>
           )}
           {shown.map((item) => <ScholarshipRow key={item.id} item={item} onClick={setSelected} />)}
@@ -133,7 +149,7 @@ export default function Home() {
         결과는 참고용이에요. 지원 전에 반드시 각 기관의 공고 원문을 확인하세요.
       </p>
       </section>
-      <ScholarshipSheet item={selected} onClose={() => setSelected(null)} />
+      <ScholarshipSheet item={selected} onClose={() => setSelected(null)} onSavedChange={onSavedChange} />
       {toast}
     </div>
   )

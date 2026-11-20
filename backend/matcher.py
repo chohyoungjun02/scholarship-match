@@ -52,6 +52,23 @@ def evaluate(profile, s):
     check(f"{s.max_grade}학년 이하", s.max_grade, profile.grade, lambda h, n: h <= n)
     check(f"직전학기 {s.min_credits}학점 이상 이수", s.min_credits, profile.last_credits, lambda h, n: h >= n)
 
+    age = profile.age()
+    check(f"만 {s.min_age}세 이상", s.min_age, age, lambda h, n: h >= n)
+    check(f"만 {s.max_age}세 이하", s.max_age, age, lambda h, n: h <= n)
+    check(f"기준중위소득 {s.max_median_income}% 이하", s.max_median_income, profile.median_income, lambda h, n: h <= n)
+
+    statuses = json.loads(s.statuses or "[]")
+    if statuses:
+        label = "/".join(statuses) + " 대상"
+        if not profile.status:
+            unknown.append("신분 정보 미입력")
+        elif profile.status in statuses:
+            passed.append(label)
+        else:
+            failed.append(label)
+    if profile.interest and profile.interest in json.loads(s.interests or "[]"):
+        passed.append(f"관심 분야({profile.interest})")
+
     req_flags = json.loads(s.required_flags or "[]")
     if req_flags:
         names = "/".join(FLAGS.get(f, f) for f in req_flags)

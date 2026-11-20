@@ -5,7 +5,7 @@ import { useAuth } from '../auth.jsx'
 import { InstallCard, useToast } from '../components/ui.jsx'
 import { useUniversities } from '../universities.js'
 
-const EMPTY = { university_id: '', region: '', department: '', grade: '', gpa: '', last_credits: '', income_bracket: '', flags: [] }
+const EMPTY = { university_id: '', region: '', birth_date: '', status: '', median_income: '', interest: '', department: '', grade: '', gpa: '', last_credits: '', income_bracket: '', flags: [] }
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -16,6 +16,7 @@ export default function Profile() {
   const [form, setForm] = useState(EMPTY)
   const [flagOptions, setFlagOptions] = useState({})
   const [regionOptions, setRegionOptions] = useState([])
+  const [opts, setOpts] = useState({ status_options: [], income_options: {}, interest_options: [] })
   const [error, setError] = useState('')
   const [toast, showToast] = useToast()
 
@@ -29,6 +30,7 @@ export default function Profile() {
       })
       setFlagOptions(d.flag_options)
       setRegionOptions(d.region_options)
+      setOpts(d)
     }).catch((e) => setError(e.message))
   }, [])
 
@@ -86,6 +88,41 @@ export default function Profile() {
       </label>
 
       <label className="field">
+        <span>생년월일</span>
+        <input className="input" type="date" value={form.birth_date} onChange={set('birth_date')} max="2012-12-31" />
+      </label>
+
+      <div className="field">
+        <span>지금 신분</span>
+        <div className="chips">
+          {opts.status_options.map((st) => (
+            <button type="button" key={st} className={`chip ${form.status === st ? 'on' : ''}`}
+              onClick={() => setForm({ ...form, status: form.status === st ? '' : st })}>
+              {form.status === st && '✓ '}{st}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="row2">
+        <label className="field">
+          <span>가구 소득 수준</span>
+          <select className="select" value={form.median_income} onChange={set('median_income')}>
+            <option value="">모름</option>
+            {Object.entries(opts.income_options).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span>관심 분야 (선택)</span>
+          <select className="select" value={form.interest} onChange={set('interest')}>
+            <option value="">선택 안 함</option>
+            {opts.interest_options.map((i) => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </label>
+      </div>
+      <p className="caption" style={{ margin: '-8px 0 20px' }}>'모름'을 고르면 지원을 빼지 않고 '확인 필요'로 보여드려요</p>
+
+      <label className="field">
         <span>학과</span>
         <input className="input" placeholder="예: 컴퓨터공학과" value={form.department} onChange={set('department')} />
       </label>
@@ -141,6 +178,7 @@ export default function Profile() {
           <button type="button" className="text-btn" onClick={() => { logout(); navigate('/login') }}>로그아웃</button>
           <span className="muted"> · </span>
           <button type="button" className="text-btn" onClick={withdraw}>회원 탈퇴</button>
+          {user?.is_admin && <><span className="muted"> · </span><Link to="/admin" className="text-btn">운영자 화면</Link></>}
         </div>
       )}
 

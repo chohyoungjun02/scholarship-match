@@ -73,5 +73,57 @@ def _not_ready(name, env):
     return crawl
 
 
-crawl_youthcenter = _not_ready("온통청년", "YOUTHCENTER_KEY")
+YOUTH_URL = "https://www.youthcenter.go.kr/go/ythip/getPlcy"
+YOUTH_DETAIL = "https://www.youthcenter.go.kr/youthPolicy/ythPlcyTotalSearch/ythPlcyDetail/"
+
+
+def _age(v):
+    return int(v) if (v or "").strip().isdigit() and int(v) > 0 else None
+
+
+def youth_card(p):
+    """온통청년 정책 한 건 → 공통 카드. 경기도(법정동 코드 41…)가 대상이 아니거나 마감된 정책이면 None"""
+    if not any(z.startswith("41") for z in (p.get("zipCd") or "").split(",")):
+        return None
+    if p.get("aplyPrdSeCd") == "0057003":  # 신청 마감
+        return None
+    if "jobaba.net" in (p.get("aplyUrlAddr") or ""):  # 잡아바 수집기가 이미 가져오는 공고
+        return None
+    agency = p.get("sprvsnInstCdNm") or p.get("operInstCdNm") or ""
+    if p.get("pvsnInstGroupCd") == "0054002" and p.get("rgtrHghrkInstCdNm") != "경기도":  # 다른 시·도 지자체 사업
+        return None
+    field = p.get("lclsfNm") or ""
+    dates = re.findall(r"\d{8}", p.get("aplyYmd") or "")
+    target = "\n".join(x for x in (p.get("addAplyQlfcCndCn"), p.get("ptcpPrpTrgtCn"), p.get("earnEtcCn")) if x and x.strip())
+    return {
+        "title": p["plcyNm"], "url": YOUTH_DETAIL + p["plcyNo"],
+        "posted_at": (p.get("frstRegDt") or "")[:10] or None, "source": "온통청년",
+        "kind": "국비교육" if "교육" in field else "지역사업" if ("일자리" in field or "참여" in field) else "생활지원",
+        "agency": agency, "target_text": target[:1000] or None, "amount_text": (p.get("plcySprtCn") or "")[:200] or None,
+        "body": "\n".join(x for x in (p.get("plcyExplnCn"), target) if x) or p["plcyNm"],
+        "deadline": "{}-{}-{}".format(dates[-1][:4], dates[-1][4:6], dates[-1][6:]) if dates else None,
+        "region": next((r for r in REGIONS if r in agency + " " + p["plcyNm"]), None),
+        "min_age": _age(p.get("sprtTrgtMinAge")), "max_age": _age(p.get("sprtTrgtMaxAge")),
+    }
+
+
+def crawl_youthcenter(delay=0.5):
+    key = os.environ.get("YOUTHCENTER_KEY")
+    if not key:
+        return [], []
+    posts, errors = [], []
+    try:
+        for page in range(1, 21):  # 전체 약 4천 건, 500건씩
+            res = requests.get(YOUTH_URL, params={"apiKeyNm": key, "pageNum": page, "pageSize": 500, "rtnType": "json"},
+                               headers=HEADERS, timeout=30)
+            res.raise_for_status()
+            rows = (res.json().get("result") or {}).get("youthPolicyList") or []
+            posts += [c for c in map(youth_card, rows) if c]
+            if len(rows) < 500:
+                break
+    except Exception as e:
+        errors.append(f"온통청년: {e}")
+    return posts, errors
+
+
 crawl_work24 = _not_ready("고용24", "WORK24_KEY")

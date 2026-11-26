@@ -3,6 +3,14 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ON_VERCEL = bool(os.environ.get("VERCEL"))
 
+# 로컬 실행용: backend/.env 의 "이름=값" 줄을 환경변수로 (이미 있는 값은 덮지 않음, git 에는 안 올라감)
+_env = os.path.join(BASE_DIR, ".env")
+if os.path.exists(_env):
+    for line in open(_env, encoding="utf-8"):
+        name, sep, value = line.strip().partition("=")
+        if sep and not name.startswith("#"):
+            os.environ.setdefault(name.strip(), value.strip())
+
 
 def database_url():
     url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")

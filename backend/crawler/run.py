@@ -37,13 +37,15 @@ def is_stale(key):
 def _save_posts(posts, delay, detail_limit):
     added = details = 0
     errors = []
+    # 공고마다 DB 를 조회하면 원격 DB 에서 수백 번 왕복해 서버리스 제한 시간을 넘으므로 한 번에 불러온다
+    existing = {s.url: s for s in Scholarship.query.filter(Scholarship.url.in_([p["url"] for p in posts]))}
     for post in posts:
         if is_admin_notice(post["title"]):
             continue
-        s = Scholarship.query.filter_by(url=post["url"]).first()
+        s = existing.get(post["url"])
         if s is None:
-            s = Scholarship(url=post["url"], source=post["source"], category="공지",
-                            university_id=post.get("university_id"))
+            s = existing[post["url"]] = Scholarship(url=post["url"], source=post["source"], category="공지",
+                                                    university_id=post.get("university_id"))
             db.session.add(s)
             added += 1
         s.title = post["title"][:300]

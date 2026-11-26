@@ -13,7 +13,6 @@ from crawler.universities import BY_ID, UNIVERSITIES, public_info
 from matcher import evaluate
 from models import (FLAGS, INTERESTS, KINDS, MEDIAN_INCOMES, REGIONS, STATUSES, CrawlLog, Saved, Scholarship,
                     db)
-from samples import seed_samples
 from seed import seed_programs
 
 
@@ -42,6 +41,10 @@ def migrate():
             refresh_conditions(s)
     # 대학 선택 기능 이전에 수집한 한신대 공지는 대상 대학이 아니므로 정리
     Scholarship.query.filter(Scholarship.university_id.is_(None), Scholarship.source == "한신대").delete()
+    # 손으로 만든 샘플 카드는 공공데이터 API 수집으로 대체
+    samples = [s.id for s in Scholarship.query.filter_by(category="샘플")]
+    Saved.query.filter(Saved.scholarship_id.in_(samples)).delete()
+    Scholarship.query.filter(Scholarship.id.in_(samples)).delete()
     db.session.commit()
 
 
@@ -64,7 +67,6 @@ def create_app():
         db.create_all()
         migrate()
         seed_programs()
-        seed_samples()
 
     # ---------------- 대학 ----------------
     @app.get("/api/universities")

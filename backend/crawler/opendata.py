@@ -1,10 +1,11 @@
-"""공공데이터포털 수집기: 행정안전부 공공서비스(혜택), 온통청년, 고용24.
+"""공공데이터포털 수집기: 행정안전부 공공서비스(혜택), 온통청년, 고용24 내일배움카드 훈련과정.
 
 인증키는 환경변수로만 받는다. 키가 없으면 조용히 건너뛰어 다른 수집에 영향을 주지 않는다.
 """
 import os
 import re
 import time
+from datetime import date, timedelta
 
 import requests
 
@@ -67,13 +68,6 @@ def crawl_gov24(delay=0.5):
     return posts, errors
 
 
-def _not_ready(name, env):
-    def crawl(delay=0.5):
-        # 응답 항목 명세를 아직 확인하지 못해 키가 있어도 수집하지 않는다 (키 발급 후 샘플 응답으로 구현)
-        return [], [f"{name}: 응답 형식 확인 후 구현 예정"] if os.environ.get(env) else []
-    return crawl
-
-
 YOUTH_URL = "https://www.youthcenter.go.kr/go/ythip/getPlcy"
 MONEY_RE = re.compile(r"\d[\d,.]*\s*[만천억]?\s*원|장학금|수당|환급|준비금|정착금|지원금|적금|기여금|보증금|이용료|응시료|인건비|활동비|자금|소득공제")
 YOUTH_DETAIL = "https://www.youthcenter.go.kr/youthPolicy/ythPlcyTotalSearch/ythPlcyDetail/"
@@ -134,4 +128,44 @@ def crawl_youthcenter(delay=0.5):
     return posts, errors
 
 
-crawl_work24 = _not_ready("고용24", "WORK24_KEY")
+TRAIN_URL = "https://www.work24.go.kr/cm/openApi/call/hr/callOpenApiSvcInfo310L01.do"
+# 훈련비 전액 지원 + 훈련장려금이 나오는 유형만 (내일배움카드 일반과정까지 넣으면 경기도만 두 달에 6천 건)
+TRAIN_TYPES = {"C0104": "K-디지털 트레이닝", "C0054": "국가기간·전략산업직종"}
+
+
+def train_card(t):
+    """고용24 국민내일배움카드 훈련과정 한 건 → 공통 카드. 거주지 제한이 없어 region 은 비운다"""
+    return {
+        "title": t["title"], "url": t["titleLink"], "posted_at": None, "source": "고용24", "kind": "국비교육",
+        "agency": f"{t['subTitle']} · {t['address']}"[:100],
+        "target_text": f"{t['trainTarget']} · 훈련기간 {t['traStartDate']} ~ {t['traEndDate']} · 국민내일배움카드 필요",
+        "amount_text": f"훈련비 {int(t['realMan'] or 0):,}원 국비 지원 + 훈련장려금",
+        "body": t["title"], "deadline": t["traStartDate"],  # 개강 전에 신청
+    }
+
+
+def crawl_work24(delay=0.5):
+    key = os.environ.get("TOMORROW_KEY")
+    if not key:
+        return [], []
+    posts, errors = [], []
+    today = date.today()
+    try:
+        for code in TRAIN_TYPES:
+            for page in range(1, 21):
+                res = requests.get(TRAIN_URL, params={
+                    "authKey": key, "returnType": "JSON", "outType": "1", "pageNum": page, "pageSize": 100,
+                    "srchTraStDt": today.strftime("%Y%m%d"), "srchTraEndDt": (today + timedelta(days=30)).strftime("%Y%m%d"),
+                    "sort": "ASC", "sortCol": "2", "srchTraArea1": "41", "crseTracseSe": code}, headers=HEADERS, timeout=30)
+                res.raise_for_status()
+                data = res.json()
+                if data.get("error"):
+                    raise RuntimeError(data["error"])
+                rows = data.get("srchList") or []
+                posts += map(train_card, rows)
+                time.sleep(delay)
+                if len(rows) < 100:
+                    break
+    except Exception as e:
+        errors.append(f"고용24 훈련과정: {e}".replace(key, "***"))  # 오류 URL 에 인증키가 들어 있음
+    return posts, errors

@@ -73,4 +73,8 @@ assert (yc["region"], yc["deadline"], yc["min_age"], yc["max_age"], yc["kind"]) 
 assert youth_card({"plcyNo": "2", "plcyNm": "대구 청년", "zipCd": "27110,"}) is None
 assert youth_card({"plcyNo": "3", "plcyNm": "경기 청년 교육", "zipCd": "41590,", "plcyKywdNm": "교육지원"}) is None  # 지원금 아님
 assert youth_card({"plcyNo": "4", "plcyNm": "일상돌봄 서비스 사업", "zipCd": "41590,", "plcyKywdNm": "보조금", "plcySprtCn": "재가돌봄 및 특화서비스 제공(사회서비스 바우처)"}) is None
+from crawler.opendata import train_card
+tc = train_card({"title": "AI 개발", "titleLink": "u", "subTitle": "학원", "address": "경기 성남시", "trainTarget": "K-디지털 트레이닝",
+                 "traStartDate": "2026-12-01", "traEndDate": "2027-05-01", "realMan": "5097490"})
+assert (tc["deadline"], tc["kind"], tc["amount_text"][:14]) == ("2026-12-01", "국비교육", "훈련비 5,097,490원")
 print("ok")

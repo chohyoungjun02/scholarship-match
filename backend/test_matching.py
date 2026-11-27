@@ -66,9 +66,11 @@ assert gov24_card({"서비스명": "청년 지원", "상세조회URL": "u", "지
                    "소관기관유형": "지방자치단체"}) is None  # 경기도 밖 지자체
 assert gov24_card({"서비스명": "노인 일자리", "상세조회URL": "u", "지원대상": "만 65세 이상"}) is None
 from crawler.opendata import youth_card
-yc = youth_card({"plcyNo": "1", "plcyNm": "화성시 청년 면접수당", "zipCd": "41590,", "aplyPrdSeCd": "0057001",
+yc = youth_card({"plcyNo": "1", "plcyNm": "화성시 청년 면접수당", "zipCd": "41590,", "plcyKywdNm": "보조금", "plcySprtCn": "면접 1회 5만원", "aplyPrdSeCd": "0057001",
                  "aplyYmd": "20261101 ~ 20261231", "sprvsnInstCdNm": "경기도 화성시", "lclsfNm": "일자리",
                  "sprtTrgtMinAge": "19", "sprtTrgtMaxAge": "0"})
 assert (yc["region"], yc["deadline"], yc["min_age"], yc["max_age"], yc["kind"]) == ("화성시", "2026-12-31", 19, None, "지역사업")
 assert youth_card({"plcyNo": "2", "plcyNm": "대구 청년", "zipCd": "27110,"}) is None
+assert youth_card({"plcyNo": "3", "plcyNm": "경기 청년 교육", "zipCd": "41590,", "plcyKywdNm": "교육지원"}) is None  # 지원금 아님
+assert youth_card({"plcyNo": "4", "plcyNm": "일상돌봄 서비스 사업", "zipCd": "41590,", "plcyKywdNm": "보조금", "plcySprtCn": "재가돌봄 및 특화서비스 제공(사회서비스 바우처)"}) is None
 print("ok")

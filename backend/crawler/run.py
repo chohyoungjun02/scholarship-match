@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from flask import current_app
 
-from models import CrawlLog, Scholarship, db
+from models import CrawlLog, Saved, Scholarship, db
 
 from . import jobaba, kosaf, opendata
 from .base import (extract_body, extract_conditions, extract_deadline, extract_region, get_soup,
@@ -92,7 +92,13 @@ def _run(key, fetch):
         posts, errors = fetch(cfg["CRAWL_DELAY_SEC"])
         added, detail_errors = _save_posts(posts, cfg["CRAWL_DELAY_SEC"], cfg["CRAWL_DETAIL_LIMIT"])
         errors += detail_errors
-        log = db.session.get(CrawlLog, key) or CrawlLog(key=key)
+        if key == "youthcenter" and posts and not errors:
+            # API 는 전체 목록을 주므로, 이번 목록에 없는 정책(지원금이 아니거나 내려간 정책)은 지운다
+            gone = [s.id for s in Scholarship.query.filter(Scholarship.source == "온통청년",
+                                                            Scholarship.url.notin_([p["url"] for p in posts]))]
+            Saved.query.filter(Saved.scholarship_id.in_(gone)).delete()
+            Scholarship.query.filter(Scholarship.id.in_(gone)).delete()
+        log =db.session.get(CrawlLog, key) or CrawlLog(key=key)
         log.crawled_at, log.added = datetime.utcnow(), added
         log.error = "\n".join(errors) or None
         db.session.add(log)

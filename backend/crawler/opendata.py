@@ -4,6 +4,7 @@
 """
 import os
 import re
+import time
 
 import requests
 
@@ -62,7 +63,7 @@ def crawl_gov24(delay=0.5):
             if len(rows) < 500:
                 break
     except Exception as e:
-        errors.append(f"공공서비스: {e}")
+        errors.append(f"공공서비스: {e}".replace(key, "***"))  # 오류 URL 에 인증키가 들어 있음
     return posts, errors
 
 
@@ -74,6 +75,7 @@ def _not_ready(name, env):
 
 
 YOUTH_URL = "https://www.youthcenter.go.kr/go/ythip/getPlcy"
+MONEY_RE = re.compile(r"\d[\d,.]*\s*[만천억]?\s*원|장학금|수당|환급|준비금|정착금|지원금|적금|기여금|보증금|이용료|응시료|인건비|활동비|자금|소득공제")
 YOUTH_DETAIL = "https://www.youthcenter.go.kr/youthPolicy/ythPlcyTotalSearch/ythPlcyDetail/"
 
 
@@ -84,6 +86,11 @@ def _age(v):
 def youth_card(p):
     """온통청년 정책 한 건 → 공통 카드. 경기도(법정동 코드 41…)가 대상이 아니거나 마감된 정책이면 None"""
     if not any(z.startswith("41") for z in (p.get("zipCd") or "").split(",")):
+        return None
+    # 지원금 정책만: 키워드가 보조금·바우처여도 돌봄·상담 이용권처럼 돈을 주지 않는 사업이 섞여 있어 내용도 본다
+    if not any(w in (p.get("plcyKywdNm") or "") for w in ("보조금", "바우처")):
+        return None
+    if not MONEY_RE.search((p.get("plcySprtCn") or "") + (p.get("plcyExplnCn") or "") + p["plcyNm"]):
         return None
     if p.get("aplyPrdSeCd") == "0057003":  # 신청 마감
         return None
@@ -118,11 +125,12 @@ def crawl_youthcenter(delay=0.5):
                                headers=HEADERS, timeout=30)
             res.raise_for_status()
             rows = (res.json().get("result") or {}).get("youthPolicyList") or []
+            time.sleep(delay)  # 연달아 요청하면 400 으로 막힘
             posts += [c for c in map(youth_card, rows) if c]
             if len(rows) < 500:
                 break
     except Exception as e:
-        errors.append(f"온통청년: {e}")
+        errors.append(f"온통청년: {e}".replace(key, "***"))  # 오류 URL 에 인증키가 들어 있음
     return posts, errors
 
 
